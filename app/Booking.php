@@ -5,7 +5,7 @@ namespace App;
 class Booking extends BaseModel {
   
   const STATUS_DRAFT = 0;
-  const STATUS_CONFIRMED = 1;
+  const STATUS_COMPLETED = 1;
   
   protected $table = 'bookings';
 
@@ -17,7 +17,15 @@ class Booking extends BaseModel {
   
   protected $dates = ['first_night', 'last_night'];
   
-  /**
+  public static function getStatuses()
+  {
+    return [
+        'draft' => self::STATUS_DRAFT,
+        'completed' => self::STATUS_COMPLETED,
+    ];
+  }
+
+    /**
    * Add 1 day to the last_night for the departure date
    * 
    * @return object
@@ -45,6 +53,51 @@ class Booking extends BaseModel {
   public function user()
   {
     return $this->belongsTo(User::class); //, 'client_id', 'id');
+  }
+  
+  /**
+   * Take the payment
+   * @todo set up omnipay & Stripe
+   * 
+   * @param Request $request
+   * @return boolean
+   */
+  public function takePayment($request)
+  {
+    // Set the API key
+    Stripe::setApiKey(env('stripe-api-key'));
+
+    // Get the credit card details submitted by the form
+    $token = $request->input('stripeToken');
+
+    // Charge the card
+    try
+    {
+      $charge = Stripe_Charge::create(array(
+                  "amount" => $this->amount,
+                  "currency" => "gbp",
+                  "card" => $token,
+                  "description" => 'Holiday Booking with '.\Config::get('cottaging.site-name'))
+      );
+
+      // If we get this far, we've charged the user successfully
+      $this->paymentComplete();
+
+      Event::fire('booking.confirm', array($booking));
+
+      return true;
+    } 
+    catch (Stripe_CardError $e)
+    {
+      // Payment failed
+      return false;
+    }
+  }
+  
+  private function paymentComplete($amount)
+  {
+    $this->status = self::STATUS_COMPLETE;
+    $this->save();
   }
 
 }

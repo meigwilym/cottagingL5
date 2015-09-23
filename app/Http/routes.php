@@ -16,6 +16,14 @@ Route::get('/', ['as' => 'home', 'uses' => 'CottageController@index']);
 Route::get('cottages', ['as' => 'home', 'uses' => 'CottageController@index']);
 Route::get('cottages/{slug}', ['as' => 'show', 'uses' => 'CottageController@show']);
 
+// Authentication routes
+Route::get('login', 'Auth\AuthController@getLogin');
+Route::post('login', 'Auth\AuthController@postLogin');
+Route::get('logout', 'Auth\AuthController@getLogout');
+// Registration routes
+Route::get('register', 'Auth\AuthController@getRegister');
+Route::post('register', 'Auth\AuthController@postRegister');
+
 // bookings
 // booking form
 Route::get('booking/{cottagename}', ['as'=> 'booking.create', 'uses', 'BookingController@create']);
